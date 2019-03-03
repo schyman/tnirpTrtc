@@ -1,8 +1,8 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"path"
@@ -16,24 +16,11 @@ func startRestServer(restConfig RestConfig) {
 	}
 	port := strconv.Itoa(restConfig.Port)
 
-	go func() {
-		err := http.ListenAndServe(":"+port, restServer)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	fmt.Println("Started Rest server at " + port)
-
-	requestServer()
-}
-
-func requestServer() {
-	resp, err := http.Get("http://localhost:3001/chapter_versions/311111?skjdfn")
-	fmt.Println(err)
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	fmt.Printf("\nWebserver said: `%s`", string(body))
+	fmt.Println("Starting Rest server at " + port)
+	err := http.ListenAndServe(":"+port, restServer)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 type RestServer struct {
@@ -66,8 +53,20 @@ func (h *ChapterHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// h.handleGet(id)
-	http.Error(res, fmt.Sprintf("actually it was successful %d", id), http.StatusBadRequest)
+	chapter := Chapter{}
+	err = getChapter(&chapter, id)
+	if err != nil {
+		http.Error(res, err.Error(), 500)
+		return
+	}
+
+	out, err := json.Marshal(chapter)
+	if err != nil {
+		http.Error(res, err.Error(), 500)
+		return
+	}
+
+	fmt.Fprintf(res, string(out))
 }
 
 // ShiftPath splits off the first component of p, which will be cleaned of

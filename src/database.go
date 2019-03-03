@@ -10,6 +10,12 @@ import (
 
 var db *sql.DB
 
+type errChapterNotFound string
+
+func (e errChapterNotFound) Error() string {
+	return string(e)
+}
+
 func startDatabase(config DatabaseConfig) {
 	var err error
 	db, err = sql.Open("postgres", fmt.Sprintf(
@@ -24,26 +30,43 @@ func startDatabase(config DatabaseConfig) {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Connecte to postgres database: " + config.Name)
-	testQueries()
+	fmt.Println("Connected to postgres database: " + config.Name)
 }
 
-func testQueries() {
-	fmt.Println("# Querying")
-	rows, err := db.Query("SELECT * FROM project")
+func getChapter(chapter *Chapter, chapter_id int) error {
+	row := db.QueryRow(GET_CHAPTER_QUERY, chapter_id)
+	err := row.Scan(&chapter.Company, &chapter.Project, &chapter.Chapter)
+	if err == sql.ErrNoRows {
+		return errChapterNotFound("Chapter not found")
+	}
+
 	if err != nil {
-		log.Fatal(err)
+		return err
+	}
+
+	return getChapterVersions(chapter, chapter_id)
+}
+
+func getChapterVersions(chapter *Chapter, chapter_id int) error {
+	rows, err := db.Query(GET_CHAPTER_VERSIONS_QUERY, chapter_id)
+	if err != nil {
+		return err
 	}
 
 	for rows.Next() {
-		var project_id int
-		var project_company_id int
-		var project_name string
-		err = rows.Scan(&project_id, &project_company_id, &project_name)
+		version := ChapterVersion{}
+		err = rows.Scan(
+			&version.Chapter_version_id,
+			&version.Created_by,
+			&version.Chapter_version_number,
+			&version.Created,
+			&version.Appversion)
+
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
-		fmt.Println("uid | username | department ")
-		fmt.Printf("%3v | %8v | %6v \n", project_id, project_company_id, project_name)
+		chapter.Versions = append(chapter.Versions, version)
 	}
+
+	return nil
 }

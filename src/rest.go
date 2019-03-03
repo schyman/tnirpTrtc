@@ -29,7 +29,7 @@ func startRestServer(restConfig RestConfig) {
 }
 
 func requestServer() {
-	resp, err := http.Get("http://localhost:3001/chapter_versions/31?skjdfn")
+	resp, err := http.Get("http://localhost:3001/chapter_versions/311111?skjdfn")
 	fmt.Println(err)
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)

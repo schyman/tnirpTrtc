@@ -53,20 +53,21 @@ func (h *ChapterHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	chapter := Chapter{}
+	chapter := Chapter{Versions: []ChapterVersion{}}
 	err = getChapter(&chapter, id)
 	if err != nil {
 		http.Error(res, err.Error(), 500)
 		return
 	}
 
-	out, err := json.Marshal(chapter)
+	response, err := json.Marshal(chapter)
 	if err != nil {
 		http.Error(res, err.Error(), 500)
 		return
 	}
 
-	fmt.Fprintf(res, string(out))
+	res.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(res, string(response))
 }
 
 // ShiftPath splits off the first component of p, which will be cleaned of

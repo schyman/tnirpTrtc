@@ -2,14 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 )
 
 func main() {
 	configuration := readConfig()
-	fmt.Println(configuration.Rest.Port)
 	startDatabase(configuration.Database)
 	startRestServer(configuration.Rest)
 }

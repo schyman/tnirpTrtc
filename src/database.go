@@ -19,7 +19,7 @@ func (e errChapterNotFound) Error() string {
 }
 
 // App version to marketing name mapping
-var APP_VERSION_MAP = map[string]string{
+var appVersionMap = map[string]string{
 	"8.0":     "CS6",
 	"11.0":    "CC 2015",
 	"12.0":    "CC 2017",
@@ -45,55 +45,60 @@ func startDatabase(config DatabaseConfig) {
 }
 
 // Fetch details for a chapter with given id
-func getChapter(chapter *Chapter, chapter_id int) error {
-	row := db.QueryRow(GET_CHAPTER_QUERY, chapter_id)
+func getChapter(chapterId int) (*Chapter, error) {
+	row := db.QueryRow(GetChapterQuery, chapterId)
+	var chapter Chapter
 	err := row.Scan(&chapter.Company, &chapter.Project, &chapter.Chapter)
 
 	// If database returns nothing, we return chapter not found error
 	if err == sql.ErrNoRows {
-		return errChapterNotFound("Chapter not found")
-	}
-
-	if err != nil {
-		return err
+		return nil, errChapterNotFound("Chapter not found")
+	} else if err != nil {
+		return nil, err
 	}
 
 	// We also fetch the list of chapter versions from database
-	return getChapterVersions(chapter, chapter_id)
+	chapter.Versions, err = getChapterVersions(chapterId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &chapter, nil
 }
 
 // Fetch versions of chapter from database and add it to the chapter object passed as input
-func getChapterVersions(chapter *Chapter, chapter_id int) error {
-	rows, err := db.Query(GET_CHAPTER_VERSIONS_QUERY, chapter_id)
+func getChapterVersions(chapterId int) ([]ChapterVersion, error) {
+	rows, err := db.Query(ChapterVersionsQuery, chapterId)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	var chapterVersions []ChapterVersion
 
 	for rows.Next() {
 		version := ChapterVersion{}
 		var appVersion sql.NullString
 		err = rows.Scan(
-			&version.Chapter_version_id,
-			&version.Created_by,
-			&version.Chapter_version_number,
+			&version.ChapterVersionId,
+			&version.CreatedBy,
+			&version.ChapterVersionNumber,
 			&version.Created,
 			&appVersion)
 
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		// Convert appversion value into marketing friendly label
+		version.Appversion = appVersionMap["MISSING"]
 		if appVersion.Valid {
-			if marketing_name, ok := APP_VERSION_MAP[appVersion.String]; ok {
-				version.Appversion = marketing_name
-			} else {
-				version.Appversion = APP_VERSION_MAP["MISSING"]
+			if marketingName, ok := appVersionMap[appVersion.String]; ok {
+				version.Appversion = marketingName
 			}
 		}
 
-		chapter.Versions = append(chapter.Versions, version)
+		chapterVersions = append(chapterVersions, version)
 	}
 
-	return nil
+	return chapterVersions, nil
 }

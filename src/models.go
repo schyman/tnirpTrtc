@@ -12,7 +12,7 @@ type Chapter struct {
 type ChapterVersion struct {
 	Created_by             string    `json:"created_by"`
 	Chapter_version_id     int       `json:"chapter_version_id"`
-	Chapter_version_number int       `json:"chapter_version_number"`
+	Chapter_version_number int       `json:"version_number"`
 	Created                time.Time ` json:"created"`
 	Appversion             string    `json:"appversion"`
 }

@@ -12,9 +12,7 @@ import (
 
 // Start the rest server and listen to port specified in config file
 func startRestServer(restConfig RestConfig) {
-	restServer := &RestServer{
-		ChapterHandler: new(ChapterHandler),
-	}
+	restServer := new(RestServer)
 	port := strconv.Itoa(restConfig.Port)
 
 	fmt.Println("Starting Rest server at " + port)
@@ -25,17 +23,19 @@ func startRestServer(restConfig RestConfig) {
 }
 
 type RestServer struct {
-	ChapterHandler *ChapterHandler
 }
 
 // Request Router
 func (h *RestServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	var head string
-	head, req.URL.Path = ShiftPath(req.URL.Path)
+	// Return error if request type is not GET
+	if req.Method != "GET" {
+		http.Error(res, "Only GET is allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-	// Expected uri, redirect to chapter handler
-	if head == "chapter_versions" {
-		h.ChapterHandler.ServeHTTP(res, req)
+	match, _ := path.Match("*/chapter_versions/[0-9]*", req.URL.Path)
+	if match {
+		GetChapterVersions(res, req)
 		return
 	}
 
@@ -43,24 +43,13 @@ func (h *RestServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	http.Error(res, "Not Found", http.StatusNotFound)
 }
 
-type ChapterHandler struct {
-}
-
-func (h *ChapterHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-
+func GetChapterVersions(res http.ResponseWriter, req *http.Request) {
 	var head string
-	head, req.URL.Path = ShiftPath(req.URL.Path)
-	id, err := strconv.Atoi(head)
 
+	id, err := strconv.Atoi(path.Base(req.URL.Path))
 	// Return error if chapter id is not a integer
 	if err != nil {
 		http.Error(res, fmt.Sprintf("Invalid chapter id %q", head), http.StatusBadRequest)
-		return
-	}
-
-	// Return error if request type is not GET
-	if req.Method != "GET" {
-		http.Error(res, "Only GET is allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -73,14 +62,14 @@ func (h *ChapterHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	// Return error if there is some issue fetching details from the database
 	if err != nil {
-		http.Error(res, err.Error(), 500)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Convert chapter object into json string
 	response, err := json.Marshal(chapter)
 	if err != nil {
-		http.Error(res, err.Error(), 500)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

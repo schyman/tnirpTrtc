@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"path"
 	"strconv"
-	"strings"
 )
 
 // Start the rest server and listen to port specified in config file
@@ -27,15 +26,9 @@ type RestServer struct {
 
 // Request Router
 func (h *RestServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	// Return error if request type is not GET
-	if req.Method != "GET" {
-		http.Error(res, "Only GET is allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	match, _ := path.Match("*/chapter_versions/[0-9]*", req.URL.Path)
 	if match {
-		GetChapterVersions(res, req)
+		h.GetChapterVersions(res, req)
 		return
 	}
 
@@ -43,18 +36,23 @@ func (h *RestServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	http.Error(res, "Not Found", http.StatusNotFound)
 }
 
-func GetChapterVersions(res http.ResponseWriter, req *http.Request) {
-	var head string
+func (h *RestServer) GetChapterVersions(res http.ResponseWriter, req *http.Request) {
+	// Return error if request type is not GET
+	if req.Method != "GET" {
+		http.Error(res, "Only GET is allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-	id, err := strconv.Atoi(path.Base(req.URL.Path))
+	id := path.Base(req.URL.Path)
+	chapterId, err := strconv.Atoi(id)
 	// Return error if chapter id is not a integer
 	if err != nil {
-		http.Error(res, fmt.Sprintf("Invalid chapter id %q", head), http.StatusBadRequest)
+		http.Error(res, fmt.Sprintf("Invalid chapter id %q", id), http.StatusBadRequest)
 		return
 	}
 
 	// Fetch chapter details from the database
-	chapter, err := getChapter(id)
+	chapter, err := getChapter(chapterId)
 
 	// Return error if there is some issue fetching details from the database
 	if err != nil {
@@ -72,16 +70,4 @@ func GetChapterVersions(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json")
 	// Send response
 	fmt.Fprintf(res, string(response))
-}
-
-// ShiftPath splits off the first component of p, which will be cleaned of
-// relative components before processing. head will never contain a slash and
-// tail will always be a rooted path without trailing slash.
-func ShiftPath(p string) (head, tail string) {
-	p = path.Clean("/" + p)
-	i := strings.Index(p[1:], "/") + 1
-	if i <= 0 {
-		return p[1:], "/"
-	}
-	return p[1:i], p[i:]
 }

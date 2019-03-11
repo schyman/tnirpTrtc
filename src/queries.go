@@ -1,7 +1,7 @@
 package main
 
 const (
-	GET_CHAPTER_QUERY = `
+	GetChapterQuery = `
 	SELECT 
 		c.company_name AS Company, 
 		p.project_name AS Project, 
@@ -13,11 +13,11 @@ const (
 	LIMIT 1
 	`
 
-	GET_CHAPTER_VERSIONS_QUERY = `
+	ChapterVersionsQuery = `
 	SELECT 
-		cv.chapter_version_id AS Chapter_version_id, 
-		p.person_username AS Created_by, 
-		cv.chapter_version_number AS Chapter_version_number,
+		cv.chapter_version_id AS ChapterVersionId, 
+		p.person_username AS CreatedBy, 
+		cv.chapter_version_number AS ChapterVersionNumber,
 		cv.chapter_version_create_date AS Created,
 		cv.chapter_version_appversion AS Appversion
 	FROM chapter_version cv 

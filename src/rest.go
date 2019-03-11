@@ -53,12 +53,8 @@ func GetChapterVersions(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Initialize chapter object with empty chapter versions object
-	// else 'null' instead of '[]' would be returned as value of 'Versions' field if it is empty
-	chapter := Chapter{Versions: []ChapterVersion{}}
-
 	// Fetch chapter details from the database
-	err = getChapter(&chapter, id)
+	chapter, err := getChapter(id)
 
 	// Return error if there is some issue fetching details from the database
 	if err != nil {

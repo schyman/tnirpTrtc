@@ -20,6 +20,7 @@ func (e errChapterNotFound) Error() string {
 
 // App version to marketing name mapping
 var APP_VERSION_MAP = map[string]string{
+	"8.0":     "CS6",
 	"11.0":    "CC 2015",
 	"12.0":    "CC 2017",
 	"MISSING": "-",
@@ -70,7 +71,7 @@ func getChapterVersions(chapter *Chapter, chapter_id int) error {
 
 	for rows.Next() {
 		version := ChapterVersion{}
-		var appVersion string
+		var appVersion sql.NullString
 		err = rows.Scan(
 			&version.Chapter_version_id,
 			&version.Created_by,
@@ -83,10 +84,12 @@ func getChapterVersions(chapter *Chapter, chapter_id int) error {
 		}
 
 		// Convert appversion value into marketing friendly label
-		if marketing_name, ok := APP_VERSION_MAP[appVersion]; ok {
-			version.Appversion = marketing_name
-		} else {
-			version.Appversion = APP_VERSION_MAP["MISSING"]
+		if appVersion.Valid {
+			if marketing_name, ok := APP_VERSION_MAP[appVersion.String]; ok {
+				version.Appversion = marketing_name
+			} else {
+				version.Appversion = APP_VERSION_MAP["MISSING"]
+			}
 		}
 
 		chapter.Versions = append(chapter.Versions, version)
